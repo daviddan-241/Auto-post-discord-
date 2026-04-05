@@ -1,36 +1,69 @@
 import time
 import requests
 
-from dex import get_trending
-from xscanner import scan_x
 from keep_alive import keep_alive
+from sources import scan_dexscreener, scan_gecko, scan_pump_fun
+from filters import is_relevant
 
-WEBHOOK = "https://discord.com/api/webhooks/1490137623577235497/ZzzvUp5fDvWuMwlWB8SVYyNe5KP70S3V7kpi5nefBSXi3eDxSy4CFQOzkvDXPT_F9WsJ"
+WEBHOOK = "YOUR_DISCORD_WEBHOOK"
+
+seen = set()
 
 def send(msg):
-    requests.post(WEBHOOK, json={"content": msg})
+    try:
+        requests.post(WEBHOOK, json={"content": msg}, timeout=10)
+    except:
+        pass
 
-def run_dex():
-    tokens = get_trending()
-    for t in tokens:
-        send(f"🔥 DEX ALERT\n{t['name']} ({t['symbol']})\nLiquidity: ${t['liq']}\n{t['url']}")
 
-def run_x():
-    posts = scan_x()
-    for p in posts:
-        send(f"🐦 X SIGNAL\n{p}")
+def dedupe(item):
+    key = item["name"] + item["chain"]
+    if key in seen:
+        return False
+    seen.add(key)
+    return True
+
+
+def format_item(item):
+    return f"""🔥 {item['source']} ALERT
+Name: {item['name']} ({item['symbol']})
+Chain: {item['chain']}
+Liquidity/MC: ${item['liq']}
+{item['url']}"""
+
+
+def run_all():
+    results = []
+
+    results += scan_dexscreener()
+    results += scan_gecko()
+    results += scan_pump_fun()
+
+    for r in results:
+        try:
+            if not dedupe(r):
+                continue
+
+            if not is_relevant(r.get("name", "")):
+                continue
+
+            send(format_item(r))
+
+        except:
+            continue
+
 
 def main():
     keep_alive()
-    send("✅ Meme Radar Pro ONLINE")
+    send("✅ Meme Radar PRO ONLINE (Multi-chain + Multi-source)")
 
     while True:
         try:
-            run_dex()
-            run_x()
-            time.sleep(60)
+            run_all()
+            time.sleep(90)  # stable for APIs
         except Exception as e:
-            send(f"⚠️ Error: {str(e)}")
+            print("loop error:", e)
             time.sleep(10)
+
 
 main()
