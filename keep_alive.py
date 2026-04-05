@@ -3,9 +3,9 @@ from threading import Thread
 
 app = Flask(__name__)
 
-@app.route("/")
+@app.route('/')
 def home():
-    return "alive"
+    return "Meme Radar Running"
 
 def run():
     app.run(host="0.0.0.0", port=8080)
