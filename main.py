@@ -5,7 +5,7 @@ from dex import get_trending
 from xscanner import scan_x
 from keep_alive import keep_alive
 
-WEBHOOK = "YOUR_DISCORD_WEBHOOK"
+WEBHOOK = "https://discord.com/api/webhooks/1490137623577235497/ZzzvUp5fDvWuMwlWB8SVYyNe5KP70S3V7kpi5nefBSXi3eDxSy4CFQOzkvDXPT_F9WsJ"
 
 def send(msg):
     requests.post(WEBHOOK, json={"content": msg})
