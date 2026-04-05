@@ -12,7 +12,7 @@ CHAINS = ["solana", "ethereum", "bsc", "base"]
 seen = set()
 
 
-# ---------------- FILTER LOGIC ----------------
+# ---------------- FILTER ----------------
 def is_discord_only(socials: dict):
     if not socials:
         return False
@@ -25,7 +25,7 @@ def is_discord_only(socials: dict):
     )
 
 
-# ---------------- FETCH DATA ----------------
+# ---------------- FETCH ----------------
 async def fetch_pairs(session, chain):
     url = f"https://api.dexscreener.com/latest/dex/pairs/{chain}"
     try:
@@ -36,15 +36,13 @@ async def fetch_pairs(session, chain):
         return []
 
 
-# ---------------- SEND TO DISCORD ----------------
+# ---------------- SEND WEBHOOK ----------------
 async def send_webhook(message):
     async with aiohttp.ClientSession() as session:
-        await session.post(WEBHOOK_URL, json={
-            "content": message
-        })
+        await session.post(WEBHOOK_URL, json={"content": message})
 
 
-# ---------------- SCANNER LOOP ----------------
+# ---------------- SCANNER ----------------
 async def scanner():
     async with aiohttp.ClientSession() as session:
         while True:
@@ -59,9 +57,7 @@ async def scanner():
                     info = p.get("info", {})
                     socials_list = info.get("socials", [])
 
-                    socials = {}
-                    for s in socials_list:
-                        socials[s.get("type")] = s.get("url")
+                    socials = {s.get("type"): s.get("url") for s in socials_list}
 
                     if is_discord_only(socials):
                         seen.add(pair_id)
@@ -84,7 +80,7 @@ async def scanner():
 # ---------------- START ----------------
 if __name__ == "__main__":
     if not WEBHOOK_URL:
-        raise Exception("Missing DISCORD_WEBHOOK_URL in environment")
+        raise Exception("Missing DISCORD_WEBHOOK_URL in .env")
 
     keep_alive()
     asyncio.run(scanner())
