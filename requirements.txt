@@ -1,3 +1,4 @@
-aiohttp
+requests
 flask
+tweepy
 python-dotenv
