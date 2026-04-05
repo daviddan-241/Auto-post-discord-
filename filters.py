@@ -1,8 +1,8 @@
 KEYWORDS = [
-    "meme", "launch", "fair launch", "stealth", "airdrop",
-    "pump", "CA:", "discord.gg", "new token"
+    "meme", "fair launch", "launch", "pump", "stealth",
+    "airdrop", "new pair", "token", "CA:", "discord"
 ]
 
 def is_relevant(text):
-    text = text.lower()
+    text = str(text).lower()
     return any(k in text for k in KEYWORDS)
