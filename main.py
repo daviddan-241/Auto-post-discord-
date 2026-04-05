@@ -1,86 +1,36 @@
-import aiohttp
-import asyncio
-import os
-from dotenv import load_dotenv
+import time
+import requests
+
+from dex import get_trending
+from xscanner import scan_x
 from keep_alive import keep_alive
 
-load_dotenv()
+WEBHOOK = "YOUR_DISCORD_WEBHOOK"
 
-WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+def send(msg):
+    requests.post(WEBHOOK, json={"content": msg})
 
-CHAINS = ["solana", "ethereum", "bsc", "base"]
-seen = set()
+def run_dex():
+    tokens = get_trending()
+    for t in tokens:
+        send(f"🔥 DEX ALERT\n{t['name']} ({t['symbol']})\nLiquidity: ${t['liq']}\n{t['url']}")
 
+def run_x():
+    posts = scan_x()
+    for p in posts:
+        send(f"🐦 X SIGNAL\n{p}")
 
-# ---------------- FILTER ----------------
-def is_discord_only(socials: dict):
-    if not socials:
-        return False
-
-    return (
-        socials.get("discord")
-        and not socials.get("twitter")
-        and not socials.get("telegram")
-        and not socials.get("website")
-    )
-
-
-# ---------------- FETCH ----------------
-async def fetch_pairs(session, chain):
-    url = f"https://api.dexscreener.com/latest/dex/pairs/{chain}"
-    try:
-        async with session.get(url, timeout=15) as r:
-            data = await r.json()
-            return data.get("pairs", [])
-    except:
-        return []
-
-
-# ---------------- SEND WEBHOOK ----------------
-async def send_webhook(message):
-    async with aiohttp.ClientSession() as session:
-        await session.post(WEBHOOK_URL, json={"content": message})
-
-
-# ---------------- SCANNER ----------------
-async def scanner():
-    async with aiohttp.ClientSession() as session:
-        while True:
-            for chain in CHAINS:
-                pairs = await fetch_pairs(session, chain)
-
-                for p in pairs:
-                    pair_id = p.get("pairAddress")
-                    if not pair_id or pair_id in seen:
-                        continue
-
-                    info = p.get("info", {})
-                    socials_list = info.get("socials", [])
-
-                    socials = {s.get("type"): s.get("url") for s in socials_list}
-
-                    if is_discord_only(socials):
-                        seen.add(pair_id)
-
-                        msg = (
-                            f"🚨 NEW DISCORD GEM\n"
-                            f"💎 Name: {p.get('baseToken', {}).get('name')}\n"
-                            f"🔗 Chain: {chain}\n"
-                            f"💰 Price: {p.get('priceUsd')}\n"
-                            f"💧 Liquidity: {p.get('liquidity', {}).get('usd')}\n"
-                            f"🔵 Discord: {socials.get('discord')}\n"
-                            f"📍 Pair: {pair_id}"
-                        )
-
-                        await send_webhook(msg)
-
-            await asyncio.sleep(60)
-
-
-# ---------------- START ----------------
-if __name__ == "__main__":
-    if not WEBHOOK_URL:
-        raise Exception("Missing DISCORD_WEBHOOK_URL in .env")
-
+def main():
     keep_alive()
-    asyncio.run(scanner())
+    send("✅ Meme Radar Pro ONLINE")
+
+    while True:
+        try:
+            run_dex()
+            run_x()
+            time.sleep(60)
+        except Exception as e:
+            send(f"⚠️ Error: {str(e)}")
+            time.sleep(10)
+
+main()
